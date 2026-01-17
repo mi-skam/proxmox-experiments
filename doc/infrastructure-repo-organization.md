@@ -1113,7 +1113,7 @@ Install k3s on Terraform-provisioned VMs:
   hosts: k8s_control_plane
   become: true
   vars:
-    k3s_token: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
+    k3s_token: "{{ lookup('password', 'k3s_token length=32 chars=ascii_letters,digits') }}"
 
   tasks:
     - name: Install k3s server
