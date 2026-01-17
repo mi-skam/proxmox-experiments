@@ -166,7 +166,7 @@ Terraform requires a template. Provisioning begins by importing a suitable Cloud
 
 A template contains the operating system, Cloud-init packages, and basic configuration like drive types, serial consoles, and boot order. Terraform combines this template with VM-specific parameters. This keeps reusable base images separate from dynamic deployments.
 
-Integration with Virt-Customize also plays a role. This tool modifies Cloud images directly on the host. Packages, services, files on startup commands can be integrated into the template without the VM itself needing to start. Templates become more homogeneous, and Terraform needs to process fewer variables.
+Integration with Virt-Customize also plays a role. This tool modifies Cloud images directly on the host. Packages, services, files, and startup commands can be integrated into the template without the VM itself needing to start. Templates become more homogeneous, and Terraform needs to process fewer variables.
 
 #### Using Virt-Customize to Modify Cloud Images
 
