@@ -202,7 +202,7 @@ Der Ablauf im Detail:
 - `--net0 name=eth0,bridge=vmbr1,ip=10.0.20.5/24,gw=10.0.20.1` richtet die Netzwerkschnittstelle. Die Option erstellt eine virtuelle Netzwerkkarte eth0, verbindet sie mit der Bridge vmbr1, vergibt die statische IP-Adresse 10.0.20.5 mit der Netzmaske /24 und legt 10.0.20.1 als Standardgateway fest.
 - `--rootfs local-lvm:8` definiert den Speicherort und die Größe des Root-Dateisystems. Es wird auf dem lokalen LVM-Storage angelegt und erhält eine Kapazität von 8 GByte.
 - `--unprivileged 1` sorgt dafür, dass der Container als unprivilegierter LXC läuft. Dadurch wird der Root-Benutzer innerhalb des Containers nicht mit Root-Rechten auf dem Host verbunden.
-- `--password "SecurePass123"` setzt das Kennwort für den Root-Zugang des Containers. Nach der Erstellung meldet man sich damit über die Proxmox-Konsole oder per SSH an.
+- `--password` setzt das Kennwort für den Root-Zugang des Containers. In produktiven Umgebungen sollte das Kennwort nicht im Klartext in Befehlen angegeben werden, da es sonst in der Shell-Historie landet; verwenden Sie stattdessen z.B. SSH-Schlüssel oder lesen Sie das Kennwort per `read -s` ein und übergeben es sicher.
 
 Nach dem Ausführen des Befehls legt Proxmox alle Konfigurationsdateien unter `/etc/pve/lxc/220.conf` an, erstellt das Root-Dateisystem, richtet die Netzwerkschnittstelle ein und meldet den Container in der Verwaltungsoberfläche an. Anschließend kann man ihn mit `pct start 220` starten.
 
