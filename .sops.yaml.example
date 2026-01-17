@@ -1,0 +1,61 @@
+# SOPS Configuration Example
+# Copy this file to .sops.yaml and update with your actual age public keys
+# Generate keys with: age-keygen -o keys/dev.age.key
+
+creation_rules:
+  # Common secrets - shared across all environments
+  # Update the age key below with your actual public key
+  - path_regex: secrets/common\.sops\.yaml$
+    age: >-
+      age1your_actual_public_key_here_62_characters_long_from_age_keygen
+    encrypted_regex: '^(proxmox_api_token|api_token_secret|password|private_key|token|secret)$'
+
+  # Development environment secrets
+  # Can use the same key as common, or a separate dev key
+  - path_regex: secrets/dev\.sops\.yaml$
+    age: >-
+      age1your_dev_public_key_here_can_be_same_as_above_or_different
+    encrypted_regex: '^(proxmox_api_token|api_token_secret|password|private_key|token|secret)$'
+
+  # Staging environment secrets
+  - path_regex: secrets/staging\.sops\.yaml$
+    age: >-
+      age1your_staging_public_key_here
+    encrypted_regex: '^(proxmox_api_token|api_token_secret|password|private_key|token|secret)$'
+
+  # Production environment secrets
+  # IMPORTANT: Use a SEPARATE key for production!
+  # This key should be restricted to operations team only
+  - path_regex: secrets/prod\.sops\.yaml$
+    age: >-
+      age1your_production_public_key_here_different_from_dev
+    encrypted_regex: '^(proxmox_api_token|api_token_secret|password|private_key|token|secret)$'
+
+# How to use:
+#
+# 1. Generate age keys:
+#    age-keygen -o keys/dev.age.key
+#    # Output shows: Public key: age1abc123...
+#
+# 2. Copy this file:
+#    cp .sops.yaml.example .sops.yaml
+#
+# 3. Replace the placeholder age keys above with your actual public keys
+#
+# 4. Copy private key to SOPS default location:
+#    mkdir -p ~/.config/sops/age
+#    cp keys/dev.age.key ~/.config/sops/age/keys.txt
+#    chmod 600 ~/.config/sops/age/keys.txt
+#
+# 5. Create and edit your first secret:
+#    sops secrets/common.sops.yaml
+#
+# See keys/README.md and secrets/README.md for more details
+
+# Advanced: Multiple recipients (for team access)
+# - path_regex: secrets/common\.sops\.yaml$
+#   age: >-
+#     age1your_key_here,
+#     age1team_member_key_here,
+#     age1another_team_member_key_here
+#   encrypted_regex: '^(proxmox_api_token|api_token_secret|password|private_key|token|secret)$'
