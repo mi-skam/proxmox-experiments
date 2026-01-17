@@ -85,6 +85,8 @@ users:
     groups: sudo
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    # Hinweis: Der folgende SSH-Schlüssel ist gekürzt und dient nur als Beispiel.
+    # Verwenden Sie hier Ihren vollständigen öffentlichen SSH-Schlüssel.
     ssh_authorized_keys:
       - ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAvj6xX...admin@server
 
