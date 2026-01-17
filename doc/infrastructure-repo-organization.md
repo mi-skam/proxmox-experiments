@@ -632,7 +632,7 @@ resource "proxmox_virtual_environment_vm" "cluster_node" {
 
   lifecycle {
     ignore_changes = [
-      # Ignore disk changes after initial creation
+      # Ignore boot disk size changes after initial creation
       disk[0].size,
     ]
   }
