@@ -63,7 +63,7 @@ sudo add-apt-repository ppa:ansible/ansible
 
 ergänzt die Paketquellen der Installation. Danach aktualisiert man die Paketdatenbank mit `sudo apt update` und installiert Ansible per `sudo apt install ansible`. Das erzeugt eine Ansible-Laufzeitumgebung mit allen benötigten Modulen, Abhängigkeiten und Verwaltungswerkzeugen, darunter ansible-playbook und ansible-inventory.
 
-Der Zugriff des Arbeitsrechners auf das Debian-Ansible-System erfolgt ausschließlich per SSH-Schlüssel. Stellen Sie sicher, dass auf dem Zielsystem ein Benutzer mit SSH-Schlüssel-basierter Anmeldung und den benötigten sudo-Rechten vorhanden ist (siehe oben beschriebene SSH- und sudo-Konfiguration).
+Der Zugriff des Arbeitsrechners auf das Debian-Ansible-System erfolgt ausschließlich per SSH-Schlüssel. Dabei ist sicherzustellen, dass auf dem Zielsystem ein Benutzer mit SSH-Schlüssel-basierter Anmeldung und den benötigten sudo-Rechten vorhanden ist (siehe oben beschriebene SSH- und sudo-Konfiguration).
 
 ## Arbeitsumgebung vorbereiten
 
