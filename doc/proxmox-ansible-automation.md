@@ -213,7 +213,7 @@ Die Rolle beschreibt anschließend alle API-Aufrufe, die ein Administrator für 
     vcpus: 2
 ```
 
-Dieser Aufruf legt eine virtuelle Instanz VM an, hinterlegt die Konfiguration im Cluster und erzeugt eine lauffähige, stets den gleich Zustand hervorrufende (idempotente) Konfiguration. Damit der Aufruf funktionieren kann, ist zuvor noch mittels
+Dieser Aufruf legt eine virtuelle Instanz VM an, hinterlegt die Konfiguration im Cluster und erzeugt eine lauffähige, stets den gleichen Zustand hervorrufende (idempotente) Konfiguration. Damit der Aufruf funktionieren kann, ist zuvor noch mittels
 
 ```bash
 ansible-galaxy collection install community.proxmox
