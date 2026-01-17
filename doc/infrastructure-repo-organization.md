@@ -1,14 +1,16 @@
 # Organizing a Proxmox Infrastructure Repository
 
-This guide explains how to structure an infrastructure repository for creating VMs on a Proxmox cluster using Terraform and cloud-init, with a practical example of a 3-node container orchestration test cluster.
+This guide explains how to structure an infrastructure repository for creating VMs on a Proxmox cluster using Terraform, cloud-init, and Ansible, with a practical example of a 3-node container orchestration test cluster.
 
 ## Table of Contents
 
 1. [Requirements](#requirements)
 2. [Key Decisions](#key-decisions)
-3. [Repository Structure](#repository-structure)
-4. [Shared vs Individual Configuration](#shared-vs-individual-configuration)
-5. [Example: 3-Node Container Orchestration Cluster](#example-3-node-container-orchestration-cluster)
+3. [Tool Responsibilities](#tool-responsibilities)
+4. [Repository Structure](#repository-structure)
+5. [Shared vs Individual Configuration](#shared-vs-individual-configuration)
+6. [Example: 3-Node Container Orchestration Cluster](#example-3-node-container-orchestration-cluster)
+7. [Ansible Integration](#ansible-integration)
 
 ---
 
@@ -138,6 +140,89 @@ qm template 9000
 
 ---
 
+## Tool Responsibilities
+
+Understanding when to use each tool is critical for a clean architecture.
+
+### The Three-Layer Stack
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        INFRASTRUCTURE LAYERS                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ LAYER 0: Proxmox Host Setup (Optional - Ansible)             │  │
+│  │ ─────────────────────────────────────────────────────────────│  │
+│  │ • Install Proxmox on bare Debian (lae.proxmox role)          │  │
+│  │ • Configure cluster membership                                │  │
+│  │ • Set up Ceph storage                                        │  │
+│  │ • Configure networking/SDN                                    │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                              ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ LAYER 1: VM Provisioning (Terraform)                         │  │
+│  │ ─────────────────────────────────────────────────────────────│  │
+│  │ • Create/destroy VMs from templates                          │  │
+│  │ • Allocate resources (CPU, memory, disk)                     │  │
+│  │ • Network assignment to bridges                              │  │
+│  │ • IP address allocation via cloud-init                       │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                              ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ LAYER 2: OS Initialization (Cloud-init)                      │  │
+│  │ ─────────────────────────────────────────────────────────────│  │
+│  │ • User accounts and SSH keys                                 │  │
+│  │ • Package installation                                       │  │
+│  │ • Kernel modules and sysctl settings                         │  │
+│  │ • First-boot scripts                                         │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                              ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ LAYER 3: Configuration Management (Ansible - Optional)       │  │
+│  │ ─────────────────────────────────────────────────────────────│  │
+│  │ • Complex software installation (k8s, Docker)                │  │
+│  │ • Multi-node orchestration                                   │  │
+│  │ • Day-2 operations (snapshots, updates)                      │  │
+│  │ • Configuration drift remediation                            │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### When to Use Each Tool
+
+| Task | Terraform | Cloud-init | Ansible |
+|------|:---------:|:----------:|:-------:|
+| **Create/destroy VMs** | ✅ | - | ⚠️ |
+| **CPU/memory/disk allocation** | ✅ | - | - |
+| **Network bridge assignment** | ✅ | - | - |
+| **IP address configuration** | ✅ | ✅ | - |
+| **User accounts & SSH keys** | - | ✅ | ✅ |
+| **Base package installation** | - | ✅ | ✅ |
+| **Kernel modules/sysctl** | - | ✅ | ✅ |
+| **Complex software (k8s, etc.)** | - | ⚠️ | ✅ |
+| **Multi-node coordination** | - | - | ✅ |
+| **VM snapshots** | - | - | ✅ |
+| **Day-2 operations** | ⚠️ | - | ✅ |
+| **Install Proxmox itself** | - | - | ✅ |
+
+Legend: ✅ = Best choice | ⚠️ = Possible but not ideal | - = Not applicable
+
+### Decision Matrix: When to Add Ansible
+
+| Scenario | Terraform + Cloud-init | Add Ansible |
+|----------|:----------------------:|:-----------:|
+| Simple VMs with basic packages | ✅ | - |
+| k3s single-node | ✅ | Optional |
+| k3s/k8s multi-node cluster | ✅ | ✅ |
+| Proxmox host installation | - | ✅ |
+| Ceph storage setup | - | ✅ |
+| Ongoing configuration management | - | ✅ |
+| VM snapshots before updates | - | ✅ |
+
+---
+
 ## Repository Structure
 
 ### Recommended Directory Layout
@@ -183,6 +268,30 @@ proxmox-infra/
 │   │   └── docker-host.yaml
 │   └── instances/            # Instance-specific (generated)
 │       └── .gitkeep
+│
+├── ansible/                   # Ansible configurations
+│   ├── ansible.cfg           # Ansible settings
+│   ├── requirements.yml      # Galaxy dependencies
+│   ├── inventory/
+│   │   ├── hosts.yml         # Static inventory
+│   │   └── proxmox.yml       # Dynamic inventory (optional)
+│   ├── group_vars/
+│   │   ├── all.yml           # Variables for all hosts
+│   │   ├── pve_hosts.yml     # Proxmox host variables
+│   │   └── k8s_nodes.yml     # Kubernetes node variables
+│   ├── host_vars/            # Per-host variables
+│   │   └── .gitkeep
+│   ├── roles/
+│   │   └── proxmox_api/      # Custom roles
+│   │       ├── tasks/main.yml
+│   │       └── vars/main.yml
+│   ├── playbooks/
+│   │   ├── site.yml          # Main playbook
+│   │   ├── proxmox-setup.yml # Proxmox host installation
+│   │   ├── k8s-install.yml   # Kubernetes installation
+│   │   └── snapshots.yml     # VM snapshot management
+│   └── callbacks/
+│       └── anstomlog.py      # Compact logging output
 │
 ├── templates/                 # Template preparation scripts
 │   ├── ubuntu-2404/
@@ -857,3 +966,338 @@ Once your VMs are running, you have several options for container orchestration:
 | **Ansible + k8s** | Medium-High | Full automation, production |
 
 For a test cluster, I recommend **k3s** as it can be installed with a single command and supports multi-node clusters easily.
+
+---
+
+## Ansible Integration
+
+Ansible complements Terraform and cloud-init for scenarios requiring multi-node coordination, complex software installation, or day-2 operations.
+
+### Installing Ansible Dependencies
+
+```bash
+# On Ubuntu (recommended for Ansible control node)
+sudo add-apt-repository ppa:ansible/ansible
+sudo apt update
+sudo apt install ansible python3-jmespath
+
+# Install required collections and roles
+cd ansible/
+ansible-galaxy install -r requirements.yml
+```
+
+### ansible/requirements.yml
+
+```yaml
+---
+roles:
+  - name: lae.proxmox
+    version: ">=1.0.0"
+
+collections:
+  - name: community.proxmox
+    version: ">=1.0.0"
+```
+
+### ansible/ansible.cfg
+
+```ini
+[defaults]
+inventory = ./inventory/hosts.yml
+roles_path = ./roles:~/.ansible/roles
+callback_plugins = ./callbacks
+stdout_callback = anstomlog
+
+# Performance
+forks = 10
+pipelining = True
+
+# SSH settings
+host_key_checking = False
+retry_files_enabled = False
+interpreter_python = auto_silent
+
+[privilege_escalation]
+become = True
+become_method = sudo
+become_user = root
+```
+
+### ansible/inventory/hosts.yml
+
+```yaml
+---
+all:
+  children:
+    # Proxmox hypervisor hosts (for lae.proxmox role)
+    pve_hosts:
+      hosts:
+        proxmox01.lab.local:
+          ansible_host: 10.0.50.1
+
+    # Kubernetes cluster nodes (provisioned by Terraform)
+    k8s_cluster:
+      children:
+        k8s_control_plane:
+          hosts:
+            k8s-control-01:
+              ansible_host: 10.0.50.11
+        k8s_workers:
+          hosts:
+            k8s-worker-01:
+              ansible_host: 10.0.50.12
+            k8s-worker-02:
+              ansible_host: 10.0.50.13
+
+  vars:
+    ansible_user: admin
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa
+```
+
+### ansible/group_vars/all.yml
+
+```yaml
+---
+# Proxmox API connection (shared across playbooks)
+proxmox_host: "10.0.50.1"
+proxmox_user: "terraform-prov@pve"
+proxmox_token_id: "automation"
+# proxmox_token_secret: defined in vault or env var
+```
+
+### ansible/group_vars/pve_hosts.yml
+
+```yaml
+---
+# Settings for lae.proxmox role
+pve_group: pve_hosts
+pve_reboot_on_kernel_update: true
+pve_no_subscription_repo: true
+pve_remove_old_kernels: true
+
+# Storage configuration
+pve_storages:
+  - name: local-lvm
+    type: lvmthin
+    content: ["images", "rootdir"]
+    thinpool: data
+    vgname: pve
+```
+
+### Example Playbooks
+
+#### ansible/playbooks/proxmox-setup.yml
+
+Install Proxmox on bare Debian hosts:
+
+```yaml
+---
+- name: Install Proxmox VE on Debian hosts
+  hosts: pve_hosts
+  become: true
+
+  roles:
+    - lae.proxmox
+
+  vars:
+    pve_reboot_on_kernel_update: true
+```
+
+#### ansible/playbooks/k8s-install.yml
+
+Install k3s on Terraform-provisioned VMs:
+
+```yaml
+---
+- name: Install k3s control plane
+  hosts: k8s_control_plane
+  become: true
+  vars:
+    k3s_token: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
+
+  tasks:
+    - name: Install k3s server
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | sh -s - server \
+          --token {{ k3s_token }} \
+          --tls-san {{ ansible_host }}
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Save k3s token for workers
+      ansible.builtin.set_fact:
+        k3s_server_token: "{{ k3s_token }}"
+        k3s_server_url: "https://{{ ansible_host }}:6443"
+      delegate_to: localhost
+      delegate_facts: true
+
+- name: Install k3s workers
+  hosts: k8s_workers
+  become: true
+
+  tasks:
+    - name: Install k3s agent
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | sh -s - agent \
+          --server {{ hostvars['localhost']['k3s_server_url'] }} \
+          --token {{ hostvars['localhost']['k3s_server_token'] }}
+      args:
+        creates: /usr/local/bin/k3s-agent
+```
+
+#### ansible/playbooks/snapshots.yml
+
+Manage VM snapshots via Proxmox API:
+
+```yaml
+---
+- name: Create VM snapshots before maintenance
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    snapshot_name: "pre-update-{{ ansible_date_time.date }}"
+    target_vms:
+      - 501  # k8s-control-01
+      - 502  # k8s-worker-01
+      - 503  # k8s-worker-02
+
+  tasks:
+    - name: Create snapshot for each VM
+      community.proxmox.proxmox_snap:
+        api_host: "{{ proxmox_host }}"
+        api_user: "{{ proxmox_user }}"
+        api_token_id: "{{ proxmox_token_id }}"
+        api_token_secret: "{{ proxmox_token_secret }}"
+        vmid: "{{ item }}"
+        snapname: "{{ snapshot_name }}"
+        state: present
+        description: "Automated pre-update snapshot"
+      loop: "{{ target_vms }}"
+```
+
+#### ansible/playbooks/vm-power.yml
+
+Control VM power state:
+
+```yaml
+---
+- name: Control VM power state
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    vm_state: started  # started, stopped, restarted
+    target_vmids: [501, 502, 503]
+
+  tasks:
+    - name: Set VM power state
+      community.proxmox.proxmox_kvm:
+        api_host: "{{ proxmox_host }}"
+        api_user: "{{ proxmox_user }}"
+        api_token_id: "{{ proxmox_token_id }}"
+        api_token_secret: "{{ proxmox_token_secret }}"
+        vmid: "{{ item }}"
+        state: "{{ vm_state }}"
+      loop: "{{ target_vmids }}"
+```
+
+### Combined Workflow: Terraform + Ansible
+
+The recommended workflow uses Terraform for provisioning and Ansible for configuration:
+
+```bash
+# 1. Provision VMs with Terraform
+cd environments/dev
+terraform init
+terraform apply
+
+# 2. Wait for VMs to be ready (cloud-init complete)
+sleep 60
+
+# 3. Run Ansible for complex configuration
+cd ../../ansible
+ansible-playbook playbooks/k8s-install.yml
+
+# 4. Verify cluster
+ansible k8s_control_plane -m shell -a "kubectl get nodes"
+```
+
+### Terraform-Ansible Integration: Dynamic Inventory
+
+For dynamic inventory generation from Terraform state:
+
+#### scripts/generate-inventory.sh
+
+```bash
+#!/bin/bash
+# Generate Ansible inventory from Terraform output
+
+cd environments/dev
+terraform output -json cluster_nodes | jq -r '
+  to_entries |
+  group_by(.value.role) |
+  map({
+    key: (.[0].value.role | gsub("-"; "_")),
+    value: {hosts: map({key: .key, value: {ansible_host: .value.ip}}) | from_entries}
+  }) |
+  {all: {children: from_entries}}
+' > ../../ansible/inventory/terraform-hosts.yml
+```
+
+### When to Use Each Approach
+
+| Scenario | Approach |
+|----------|----------|
+| **New cluster from scratch** | Terraform → Cloud-init → Ansible |
+| **Add node to existing cluster** | Terraform → Ansible (join cluster) |
+| **Update all nodes** | Ansible only (rolling update playbook) |
+| **Pre-maintenance snapshots** | Ansible only (snapshot playbook) |
+| **Destroy and recreate** | Terraform destroy → Terraform apply |
+| **Install Proxmox on bare metal** | Ansible only (lae.proxmox) |
+
+### Secrets Management
+
+For Ansible secrets (API tokens, passwords):
+
+```bash
+# Create encrypted vault file
+ansible-vault create ansible/group_vars/vault.yml
+
+# Add to vault.yml:
+# proxmox_token_secret: "your-api-token-secret"
+
+# Run playbook with vault
+ansible-playbook playbooks/snapshots.yml --ask-vault-pass
+
+# Or use environment variable
+export ANSIBLE_VAULT_PASSWORD_FILE=~/.vault_pass
+```
+
+### Complete Infrastructure Lifecycle
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    INFRASTRUCTURE LIFECYCLE                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
+│  │   CREATE    │    │  CONFIGURE  │    │   OPERATE   │         │
+│  │  (Day 0)    │───▶│  (Day 1)    │───▶│  (Day 2+)   │         │
+│  └─────────────┘    └─────────────┘    └─────────────┘         │
+│        │                  │                  │                  │
+│        ▼                  ▼                  ▼                  │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
+│  │  Terraform  │    │ Cloud-init  │    │   Ansible   │         │
+│  │  + cloud-   │    │ + Ansible   │    │             │         │
+│  │    init     │    │             │    │             │         │
+│  └─────────────┘    └─────────────┘    └─────────────┘         │
+│        │                  │                  │                  │
+│        ▼                  ▼                  ▼                  │
+│  • Create VMs       • Install k8s      • Snapshots            │
+│  • Assign IPs       • Join cluster     • Updates              │
+│  • Base packages    • Deploy apps      • Scaling              │
+│  • SSH keys         • Certificates     • Monitoring           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
