@@ -141,7 +141,7 @@ Cloud-init integriert sich tief in die VM-Konfiguration. Die Parameter `ciuser`,
 
 ```bash
 qm set 9000 --ciuser admin \
-  --cipassword "P@ssw0rd" --sshkeys /root/.ssh/id_rsa.pub
+  --cipassword "YourSecurePasswordHere" --sshkeys /root/.ssh/id_rsa.pub
 ```
 
 Die Option `ipconfig0` definiert die Netzwerkschnittstelle. Eine statische IPv4-Adresse wird über:
