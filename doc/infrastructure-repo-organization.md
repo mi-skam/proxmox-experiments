@@ -1116,6 +1116,11 @@ Install k3s on Terraform-provisioned VMs:
     k3s_token: "{{ lookup('password', 'k3s_token length=32 chars=ascii_letters,digits') }}"
 
   tasks:
+    # Security Note: This installation method downloads and executes a script from the internet.
+    # For production deployments, consider:
+    # 1. Pinning a specific k3s version: Add INSTALL_K3S_VERSION=v1.28.5+k3s1 before the curl command
+    # 2. Verifying checksums: Download the script first and verify its checksum before execution
+    # 3. Using a local mirror: Host the installation script on your internal infrastructure
     - name: Install k3s server
       ansible.builtin.shell: |
         curl -sfL https://get.k3s.io | sh -s - server \
