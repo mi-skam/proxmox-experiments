@@ -39,19 +39,26 @@ This guide explains how to structure an infrastructure repository for creating V
 Create a dedicated service account with minimal required permissions:
 
 ```bash
+# Variables
+USERNAME="terraform-prov"
+REALM="pve"
+ROLE_NAME="TerraformProv"
+GROUP_NAME="terraform"
+TOKEN_NAME="automation"
+
 # Create user
-pveum user add terraform-prov@pve --password "secure-password"
+pveum user add "${USERNAME}@${REALM}" --password "secure-password"
 
 # Create role with required privileges
-pveum role add TerraformProv -privs "Datastore.AllocateSpace Datastore.AllocateTemplate Datastore.Audit Pool.Allocate Pool.Audit Sys.Audit Sys.Console Sys.Modify VM.Allocate VM.Audit VM.Clone VM.Config.CDROM VM.Config.CPU VM.Config.Cloudinit VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.Migrate VM.PowerMgmt SDN.Use"
+pveum role add "${ROLE_NAME}" -privs "Datastore.AllocateSpace Datastore.AllocateTemplate Datastore.Audit Pool.Allocate Pool.Audit Sys.Audit Sys.Console Sys.Modify VM.Allocate VM.Audit VM.Clone VM.Config.CDROM VM.Config.CPU VM.Config.Cloudinit VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.Migrate VM.PowerMgmt SDN.Use"
 
 # Create group and assign role
-pveum group add terraform
-pveum aclmod / -group terraform -role TerraformProv
-pveum user modify terraform-prov@pve -groups terraform
+pveum group add "${GROUP_NAME}"
+pveum aclmod / -group "${GROUP_NAME}" -role "${ROLE_NAME}"
+pveum user modify "${USERNAME}@${REALM}" -groups "${GROUP_NAME}"
 
 # Create API token (save the output!)
-pveum user token add terraform-prov@pve automation
+pveum user token add "${USERNAME}@${REALM}" "${TOKEN_NAME}"
 ```
 
 ### Base Template Preparation
@@ -59,23 +66,33 @@ pveum user token add terraform-prov@pve automation
 Before Terraform can provision VMs, you need a cloud-init enabled template:
 
 ```bash
+# Variables
+TEMPLATE_VMID="9000"
+TEMPLATE_NAME="ubuntu-2404-base"
+IMAGE_FILE="noble-server-cloudimg-amd64.img"
+IMAGE_URL="https://cloud-images.ubuntu.com/noble/current/${IMAGE_FILE}"
+STORAGE="local-lvm"
+BRIDGE="vmbr0"
+MEMORY="2048"
+CORES="2"
+
 # Download cloud image
-wget https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+wget "${IMAGE_URL}"
 
 # Optional: Customize with virt-customize
 apt install libguestfs-tools
-virt-customize -a noble-server-cloudimg-amd64.img \
+virt-customize -a "${IMAGE_FILE}" \
   --install qemu-guest-agent,curl,vim \
   --run-command "systemctl enable qemu-guest-agent"
 
 # Create and configure template VM
-qm create 9000 --name ubuntu-2404-base --memory 2048 --cores 2 --net0 virtio,bridge=vmbr0
-qm importdisk 9000 noble-server-cloudimg-amd64.img local-lvm
-qm set 9000 --scsihw virtio-scsi-pci --scsi0 local-lvm:vm-9000-disk-0
-qm set 9000 --ide2 local-lvm:cloudinit
-qm set 9000 --serial0 socket --vga serial0
-qm set 9000 --boot order=scsi0
-qm template 9000
+qm create "${TEMPLATE_VMID}" --name "${TEMPLATE_NAME}" --memory "${MEMORY}" --cores "${CORES}" --net0 "virtio,bridge=${BRIDGE}"
+qm importdisk "${TEMPLATE_VMID}" "${IMAGE_FILE}" "${STORAGE}"
+qm set "${TEMPLATE_VMID}" --scsihw virtio-scsi-pci --scsi0 "${STORAGE}:vm-${TEMPLATE_VMID}-disk-0"
+qm set "${TEMPLATE_VMID}" --ide2 "${STORAGE}:cloudinit"
+qm set "${TEMPLATE_VMID}" --serial0 socket --vga serial0
+qm set "${TEMPLATE_VMID}" --boot order=scsi0
+qm template "${TEMPLATE_VMID}"
 ```
 
 ---
@@ -86,12 +103,14 @@ qm template 9000
 
 | Aspect | Telmate/proxmox | bpg/proxmox |
 |--------|-----------------|-------------|
-| Maturity | Older, widely used | Newer, actively maintained |
-| Privilege separation | Issues with newer Proxmox | Handles correctly |
-| Documentation | More examples available | Growing community |
-| **Recommendation** | Legacy projects | **New projects** |
+| Maintenance | Actively maintained (2025+) | Actively maintained (latest: v0.92.0, Jan 2026) |
+| Proxmox support | Basic VM/LXC/pool/cloud-init | Complete API coverage (VMs, clusters, hosts, ACLs, SDN, users) |
+| Privilege separation | Some configuration deprecations | Handles privilege separation correctly |
+| Proxmox 9.x support | Basic support | Full support, actively tested |
+| Community feedback | Widely used, stable | "Perfectly maintained", fast bug fixes |
+| **Recommendation** | Legacy projects, basic needs | **New projects, comprehensive management** |
 
-**Decision**: Use `bpg/proxmox` for new infrastructure.
+**Decision**: Use `bpg/proxmox` for new infrastructure. Both providers are actively maintained, but bpg offers broader feature coverage and better support for newer Proxmox versions.
 
 ### 2. Clone Type: Full Clone vs Linked Clone
 
@@ -203,8 +222,13 @@ Understanding when to use each tool is critical for a clean architecture.
 | **Kernel modules/sysctl** | - | ✅ | ✅ |
 | **Complex software (k8s, etc.)** | - | ⚠️ | ✅ |
 | **Multi-node coordination** | - | - | ✅ |
-| **VM snapshots** | - | - | ✅ |
-| **Day-2 operations** | ⚠️ | - | ✅ |
+| **Day-2: VM snapshots** | - | - | ✅ |
+| **Day-2: Rolling updates** | - | - | ✅ |
+| **Day-2: Configuration drift detection** | ⚠️ | - | ✅ |
+| **Day-2: Backup management** | - | - | ✅ |
+| **Day-2: Security patching** | - | - | ✅ |
+| **Day-2: Resource scaling** | ✅ | - | ⚠️ |
+| **Day-2: Cluster maintenance** | - | - | ✅ |
 | **Install Proxmox itself** | - | - | ✅ |
 
 Legend: ✅ = Best choice | ⚠️ = Possible but not ideal | - = Not applicable
@@ -1240,7 +1264,15 @@ For dynamic inventory generation from Terraform state:
 #!/bin/bash
 # Generate Ansible inventory from Terraform output
 
-cd environments/dev
+# Variables
+TERRAFORM_ENV="environments/dev"
+ANSIBLE_INVENTORY_DIR="ansible/inventory"
+OUTPUT_FILE="terraform-hosts.yml"
+
+# Change to Terraform environment directory
+cd "${TERRAFORM_ENV}"
+
+# Generate inventory from Terraform output
 terraform output -json cluster_nodes | jq -r '
   to_entries |
   group_by(.value.role) |
@@ -1249,7 +1281,9 @@ terraform output -json cluster_nodes | jq -r '
     value: {hosts: map({key: .key, value: {ansible_host: .value.ip}}) | from_entries}
   }) |
   {all: {children: from_entries}}
-' > ../../ansible/inventory/terraform-hosts.yml
+' > "../../${ANSIBLE_INVENTORY_DIR}/${OUTPUT_FILE}"
+
+echo "Inventory generated at ${ANSIBLE_INVENTORY_DIR}/${OUTPUT_FILE}"
 ```
 
 ### When to Use Each Approach
