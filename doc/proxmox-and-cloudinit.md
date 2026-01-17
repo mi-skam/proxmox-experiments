@@ -190,7 +190,7 @@ pct create 201 local:vztmpl/debian-12-standard_12.0-1_amd64.tar.zst \
 pct create 220 local:vztmpl/ubuntu-24.04-standard_24.04-1_amd64.tar.zst \
   --hostname db01 --cores 2 --memory 2048 --net0 name=eth0,bridge=vmbr1,ip=10.0.20.5/24,gw=10.0.20.1 \
   --rootfs local-lvm:8 \
-  --unprivileged 1 --password "SecurePass123"
+  --unprivileged 1 --password "YourStrongPasswordHere"
 ```
 
 Der Ablauf im Detail:
