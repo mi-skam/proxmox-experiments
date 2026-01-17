@@ -181,6 +181,7 @@ pve_storages:
     type: nfs
     content: [ "images", "iso" ]
     server: 192.168.122.2
+    export: /nfs/share
 ```
 
 ---
