@@ -329,7 +329,7 @@ locals {
 resource "proxmox_vm_qemu" "group" {
   for_each    = local.server_group
   name        = each.key
-  target_node = "pve01"
+  target_node = "proxmox"
   clone       = "ubuntu-ci-template"
   full_clone  = true
   cores       = 2
