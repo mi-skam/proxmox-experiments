@@ -249,7 +249,7 @@ initialization {
 }
 ```
 
-Instead of the line `keys = [ file("~/.ssh/id_rsa.pub") ]`.
+Instead of the line `sshkeys = file("~/.ssh/id_rsa.pub")`.
 
 ## Creating VMs with Terraform
 
