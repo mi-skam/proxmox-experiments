@@ -104,6 +104,8 @@ cd tf-proxmox
 
 Create the file `provider.tf` in the Terraform directory. It controls the connection between Terraform and the Proxmox host and contains the complete provider configuration including API URL and token references.
 
+#### Option 1: Hardcoded Values
+
 ```hcl
 terraform {
   required_providers {
@@ -121,63 +123,62 @@ provider "proxmox" {
 }
 ```
 
-### variables.tf (Variable Definitions)
+#### Option 2: Using Variables (Recommended)
 
-Create a `variables.tf` file to define the required variables:
+For better security and flexibility, use variables instead of hardcoding credentials:
 
+**provider.tf:**
 ```hcl
-variable "proxmox_api_url" {
+terraform {
+  required_providers {
+    proxmox = {
+      source = "Telmate/proxmox"
+    }
+  }
+}
+
+provider "proxmox" {
+  pm_api_url          = var.pm_api_url
+  pm_api_token_id     = var.pm_api_token_id
+  pm_api_token_secret = var.pm_api_token_secret
+  pm_tls_insecure     = var.pm_tls_insecure
+}
+```
+
+**variables.tf:**
+```hcl
+variable "pm_api_url" {
   description = "Proxmox API URL"
   type        = string
 }
 
-variable "proxmox_token_id" {
+variable "pm_api_token_id" {
   description = "Proxmox API Token ID"
   type        = string
   sensitive   = true
 }
 
-variable "proxmox_token_secret" {
+variable "pm_api_token_secret" {
   description = "Proxmox API Token Secret"
   type        = string
   sensitive   = true
 }
+
+variable "pm_tls_insecure" {
+  description = "Disable TLS verification"
+  type        = bool
+  default     = true
+}
 ```
 
-### terraform.tfvars (Variable Values)
-
-Create a `terraform.tfvars` file with your actual credentials. **Important**: This file should never be committed to version control.
-
+**terraform.tfvars:**
 ```hcl
-proxmox_api_url      = "https://your.proxmox.host:8006/api2/json"
-proxmox_token_id     = "your-username@pve!your-token-name"
-proxmox_token_secret = "your-actual-token-secret-here"
+pm_api_url          = "https://10.0.1.241:8006/api2/json"
+pm_api_token_id     = "terraform-prov@pve!automation"
+pm_api_token_secret = "79f1a87e-3d4f-4feb-9350-e7758fabd173"
 ```
 
-### .gitignore Configuration
-
-Add the following to your `.gitignore` file to prevent accidentally committing sensitive files:
-
-```
-# Terraform sensitive files
-terraform.tfvars
-*.tfvars
-.terraform/
-*.tfstate
-*.tfstate.backup
-```
-
-### Alternative: Using Environment Variables
-
-Instead of a `terraform.tfvars` file, you can also use environment variables:
-
-```bash
-export TF_VAR_proxmox_api_url="https://your.proxmox.host:8006/api2/json"
-export TF_VAR_proxmox_token_id="your-username@pve!your-token-name"
-export TF_VAR_proxmox_token_secret="your-actual-token-secret-here"
-```
-
-Terraform automatically reads environment variables prefixed with `TF_VAR_`.
+**Note:** The `terraform.tfvars` file should be added to `.gitignore` to prevent committing sensitive credentials to version control.
 
 ### Alternative Provider: bpg/proxmox
 
@@ -311,7 +312,7 @@ Instead of defining an SSH key, you can specify username and password in the `vm
 initialization {
   user_account {
     username = "ubuntu"
-    password = "xyz"
+    password = "YourSecurePasswordHere"
   }
 }
 ```
@@ -397,7 +398,7 @@ resource "proxmox_vm_qemu" "group" {
   for_each    = local.server_group
   name        = each.key
   target_node = "proxmox"
-  clone       = "ubuntu-ci-template"
+  clone       = "ubuntu-2404-ci"
   full_clone  = true
   cores       = 2
   memory      = 4096
