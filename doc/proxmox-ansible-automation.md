@@ -190,9 +190,9 @@ pve_storages:
 
 Nach dem Einrichten der Basisumgebung und der Proxmox-Installation bietet die Proxmox-API vollständigen Zugriff auf alle Hypervisor-Funktionen. Ansible verbindet sich über HTTP-Aufrufe mit der API und führt darüber dieselben Aktionen aus wie auf der Weboberfläche. Dadurch bleibt die Automation der Proxmox-Dienste und deren Steuerung konsistent. Man kapselt alle anstehenden Arbeiten in einer eigenen Ansible-Rolle. Ein Administrator legt im Verzeichnis roles den Ordner `proxmox_api` an und darin den Unterordner tasks. Die Datei `tasks/main.yml` bildet den Einstiegspunkt der Rolle. Im anzulegenden Ordner vars muss ebenfalls eine Datei `main.yml` entstehen, die die Variablen `proxmox_token_id` und `proxmox_token_secret` definiert. Die benötigten Werte erzeugt man im Proxmox-GUI für den jeweils genutzten User.
 
-Die Rolle beschreibt anschließend alle API-Aufrufe, die ein Administrator für den täglichen Betrieb benötigt. Der erste typische Anwendungsfall erzeugt eine neue virtuelle Maschine. Man trägt in `tasks/main.yml` eine Anweisung ein, die das Modul `proxmox_kvm` nutzt. Der Aufruf setzt den Namen, die VM-ID, die CPU- und RAM-Konfiguration sowie die Storage-Definition. Das Beispiel in Listing 1 verdeutlicht den Ablauf.
+Die Rolle beschreibt anschließend alle API-Aufrufe, die ein Administrator für den täglichen Betrieb benötigt. Der erste typische Anwendungsfall erzeugt eine neue virtuelle Maschine. Man trägt in `tasks/main.yml` eine Anweisung ein, die das Modul `proxmox_kvm` nutzt. Der Aufruf setzt den Namen, die VM-ID, die CPU- und RAM-Konfiguration sowie die Storage-Definition. Das folgende Beispiel verdeutlicht den Ablauf.
 
-### Listing 1: Ansible-Rolle für VM-Erstellung per API
+### Ansible-Rolle für VM-Erstellung per API
 
 ```yaml
 - name: Erzeuge Instanz "testvm"
