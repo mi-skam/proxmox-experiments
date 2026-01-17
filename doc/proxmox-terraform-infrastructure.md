@@ -211,9 +211,8 @@ virt-customize -a noble-server-cloudimg-amd64.img \
 ```bash
 # Combine multiple operations in a single command
 virt-customize -a noble-server-cloudimg-amd64.img \
-  --install qemu-guest-agent,python3-pip,git \
+  --install qemu-guest-agent,ansible,git \
   --run-command "systemctl enable qemu-guest-agent" \
-  --run-command "pip3 install ansible" \
   --mkdir /opt/scripts \
   --write /opt/scripts/startup.sh:"#!/bin/bash\necho 'System initialized'" \
   --chmod 0755:/opt/scripts/startup.sh \
