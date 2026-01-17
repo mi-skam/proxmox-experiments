@@ -68,18 +68,21 @@ Nach dem Klick auf „Image neu erzeugen" erstellt Proxmox die Metadaten automat
 
 Neben der GUI-Konfiguration unterstützt Proxmox auch benutzerdefinierte YAML-Dateien über die Option `--cicustom`. Diese teilt die Cloud-init-Dateien in vier Bereiche: `user`, `network`, `meta` und `vendor`. Sie werden in Proxmox als Snippets abgelegt. Snippets sind Textdateien, die im Verzeichnis `/var/lib/vz/snippets/` oder auf entsprechend aktivierten Speichern liegen.
 
+Cloud-init verarbeitet die Benutzerkonfiguration (`user-data`) und die Netzwerkkonfiguration (`network-config`) als getrennte Dateien. Die Netzwerkkonfiguration wird nicht aus der `user-data`-Datei gelesen – diese Funktionalität ist seit mehreren Cloud-init-Versionen veraltet und wird ignoriert. Für eine saubere Trennung sollten Administratoren beide Dateien separat anlegen und mit einem einzigen `--cicustom`-Befehl zuweisen.
+
 Ein Beispiel:
 
 ```bash
-qm set 9000 --cicustom "user=local:snippets/userconfig.yaml"
+qm set 9000 --cicustom "user=local:snippets/userconfig.yaml,network=local:snippets/networkconfig.yaml"
 ```
 
-bindet eine benutzerdefinierte Datei ein. Diese Datei enthält YAML-Inhalte, die Cloud-init beim Start auswertet. Eine typische YAML-Datei enthält klar strukturierte Parameter für Benutzer, Netzwerk und Systeminitialisierung. Ihr Inhalt legt fest, wie Cloud-init beim ersten Start der VM Benutzerkonten anlegt, Netzwerkschnittstellen konfiguriert und zusätzliche Befehle ausführt.
+bindet beide Konfigurationsdateien ein. Die Trennung von Benutzer- und Netzwerkkonfiguration bietet mehrere Vorteile: Wiederverwendbare Elemente wie SSH-Schlüssel, Pakete und Benutzerdefinitionen können in einer gemeinsamen `user-data`-Datei gepflegt werden, während instance-spezifische Parameter wie Hostnamen und IP-Adressen in separaten Dateien bleiben. So entsteht ein modulares System, bei dem ein Template für mehrere VMs mit unterschiedlichen Netzwerkeinstellungen genutzt werden kann.
 
-### Listing 2: Benutzerdefinierte Datei userconfig.yaml
+### Listing 2: Benutzerdefinierte Datei userconfig.yaml (wiederverwendbar)
 
 ```yaml
-# Benutzerkonfiguration
+#cloud-config
+# Wiederverwendbare Benutzerkonfiguration für mehrere VMs
 users:
   - name: admin
     groups: sudo
@@ -90,7 +93,7 @@ users:
     ssh_authorized_keys:
       - ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAvj6xX...admin@server
 
-# Systemparameter
+# Systemparameter (instance-spezifisch)
 hostname: app-server01
 package_update: true
 package_upgrade: true
@@ -99,35 +102,68 @@ packages:
   - htop
   - nginx
 
-# Netzwerkdefinition
-network:
-  version: 2
-  ethernets:
-    eth0:
-      dhcp4: false
-      addresses:
-        - 10.0.0.25/24
-      routes:
-        - to: default
-          via: 10.0.0.1
-      nameservers:
-        addresses: [10.0.0.10, 8.8.8.8]
-
 # Startbefehle
 runcmd:
   - systemctl enable nginx
   - systemctl start nginx
 ```
 
-In diesem Beispiel legt der obere Abschnitt den Benutzer admin mit administrativen Rechten und einem SSH-Schlüssel fest. Der Abschnitt packages installiert beim ersten Start mehrere Standardwerkzeuge und aktiviert den nginx-Dienst. Unter network sind IP-Adresse, Gateway und DNS-Server definiert, wodurch die Netzwerkkonfiguration auch ohne DHCP automatisch funktioniert.
+### Listing 3: Separate Netzwerkkonfiguration networkconfig.yaml (instance-spezifisch)
 
-Die Datei wird im Speicherbereich snippets hinterlegt und über:
-
-```bash
-qm set 9000 --cicustom "user=local:snippets/userconfig.yaml"
+```yaml
+version: 2
+ethernets:
+  eth0:
+    dhcp4: false
+    addresses:
+      - 10.0.0.25/24
+    routes:
+      - to: default
+        via: 10.0.0.1
+    nameservers:
+      addresses: [10.0.0.10, 8.8.8.8]
 ```
 
-mit der gewünschten VM verknüpft. Beim ersten Start liest Cloud-init die Datei ein und führt alle Anweisungen automatisch aus.
+In diesem Beispiel sind die wiederverwendbaren Elemente (Benutzer `admin` mit SSH-Schlüssel, Paketliste, Startbefehle) von den instance-spezifischen Parametern getrennt. Die `user-data`-Datei (Listing 2) enthält Hostname und Paketinstallationen, während die `network-config`-Datei (Listing 3) die IP-Adresse, Gateway und DNS-Server definiert. So kann dieselbe Benutzerkonfiguration für mehrere VMs verwendet werden, während jede VM ihre eigene Netzwerkkonfiguration erhält.
+
+**Wichtig**: Cloud-init ignoriert Netzwerkeinstellungen in der `user-data`-Datei. Die Netzwerkkonfiguration muss in einer separaten `network-config`-Datei bereitgestellt werden.
+
+Beide Dateien werden im Speicherbereich snippets hinterlegt und über einen einzigen Befehl verknüpft:
+
+```bash
+qm set 9000 --cicustom "user=local:snippets/userconfig.yaml,network=local:snippets/networkconfig.yaml"
+```
+
+Beim ersten Start liest Cloud-init beide Dateien ein und führt alle Anweisungen automatisch aus.
+
+### Wiederverwendbare Templates erstellen
+
+Für eine noch bessere Wiederverwendbarkeit können Administratoren instance-spezifische Parameter wie Hostnamen aus der `user-data`-Datei entfernen. Eine wirklich generische `user-data`-Datei könnte dann wie folgt aussehen:
+
+```yaml
+#cloud-config
+# Generische, vollständig wiederverwendbare Benutzerkonfiguration
+users:
+  - name: admin
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAvj6xX...admin@server
+
+package_update: true
+package_upgrade: true
+packages:
+  - net-tools
+  - htop
+  - nginx
+
+runcmd:
+  - systemctl enable nginx
+  - systemctl start nginx
+```
+
+Der Hostname kann dann über die Proxmox-GUI oder per CLI-Parameter `--name` bzw. `--ciuser` gesetzt werden, während jede VM ihre eigene `network-config`-Datei erhält. Diese Trennung ermöglicht es, dieselbe Basiskonfiguration für Dutzende von VMs zu verwenden, wobei nur die instance-spezifischen Netzwerkdateien ausgetauscht werden müssen.
 
 Ein Administrator exportiert automatisch generierte Konfigurationsdateien mit:
 
