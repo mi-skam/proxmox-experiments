@@ -122,7 +122,7 @@ im Ansible-Arbeitsordner, was den Inhalt der Dateien der Rolle enthält. Zusätz
 sudo apt install python3-jmespath
 ```
 
-Die Rolle lae.proxmox steuert den Ablauf der Installation über Variablen. Ein Administrator trägt deren Werte bei Bedarf in der Datei `group_vars/pve_hosts.yml` ein. Im GitHub-Repository der Rolle findet sich eine Liste aller unterstützten Parameter (siehe ix.de/z36x). Dazu gehören Werte wie der Zielkernel, die aktivierten Repositorys oder der Umgang mit alten Kernelpaketen. Zum Beispiel legt der Parameter `pve_no_subscription_repo: true` fest, dass das Non-Subscription-Repository von Proxmox zu nutzen ist.
+Die Rolle lae.proxmox steuert den Ablauf der Installation über Variablen. Ein Administrator trägt deren Werte bei Bedarf in der Datei `group_vars/pve_hosts.yml` ein. Im GitHub-Repository der Rolle findet sich eine Liste aller unterstützten Parameter (siehe https://github.com/lae/ansible-role-proxmox). Dazu gehören Werte wie der Zielkernel, die aktivierten Repositorys oder der Umgang mit alten Kernelpaketen. Zum Beispiel legt der Parameter `pve_no_subscription_repo: true` fest, dass das Non-Subscription-Repository von Proxmox zu nutzen ist.
 
 Die Datei pve_hosts.yml kann zudem den Hostnamen, die Netzwerkparameter und die Einstellungen für die Proxmox-Enterprise-Repositorys enthalten, falls ein Unternehmen über eine gültige Proxmox-Subskription verfügt.
 
