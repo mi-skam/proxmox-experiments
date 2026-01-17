@@ -8,9 +8,9 @@ Das Automatisierungstool Ansible hilft beim Aufsetzen und Betreiben von Proxmox-
 
 Administratoren setzen zunehmend auf Automatisierungswerkzeuge, um wiederkehrende Aufgaben zuverlässig, reproduzierbar und frei von der Fehlerquelle Mensch auszuführen. Bei der Virtualisierungsplattform Proxmox VE (Virtual Environment) stehen Installationen, das Bootstrapping neuer Cluster, Storage-Einstellungen und Anpassungen an der Netzwerkkonfiguration in vielen Umgebungen regelmäßig an und Admins profitieren dabei erheblich von Automatisierung.
 
-Das Automationstool Ansible bietet dabei mehrere Vorteile: Es arbeitet agentenlos, greift per SSH auf Zielsysteme zu und erzeugt eine Infrastruktur, die sich ohne zusätzliche Komponenten verwalten lässt. Unternehmen steigen daher mit Ansible ohne allzu große Hürden in das Thema Automatisierung ein. Der Artikel zeigt, wie man eine virtualisierte Infrastruktur mit Proxmox VE und Ansible in kurzer Zeit aufbaut.
+Das Automatisierungstool Ansible bietet dabei mehrere Vorteile: Es arbeitet agentenlos, greift per SSH auf Zielsysteme zu und erzeugt eine Infrastruktur, die sich ohne zusätzliche Komponenten verwalten lässt. Unternehmen steigen daher mit Ansible ohne allzu große Hürden in das Thema Automatisierung ein. Der Artikel zeigt, wie man eine virtualisierte Infrastruktur mit Proxmox VE und Ansible in kurzer Zeit aufbaut.
 
-Eine Ansible-Umgebung entsteht mit wenigen Befehlen auf einer Debian- oder Ubuntu-Workstation und erhält sofort lauffähige Playbooks, Module und umfangreiche Inventarfunktionen. Ansible benötigt keine zusätzlichen Dienste. Jede Aufgabe läuft auf dem verwalteten Host und verändert dessen Konfiguration strukturiert und nachvollziehbar. Dazu bereitet die Software Python-Code vor, verbindet sich mit dem Zielsystem per SSH und führt den Code dort aus. Damit eignet sich Ansible sowohl für bestehende Set-ups als auch für neue Installationen. Selbst zuvor manuell konfigurierte Proxmox-Hosts lassen sich mit Ansible auf einen gemeinsamen Standard heben.
+Eine Ansible-Umgebung entsteht mit wenigen Befehlen auf einer Debian- oder Ubuntu-Workstation und erhält sofort lauffähige Playbooks, Module und umfangreiche Inventarfunktionen. Ansible benötigt keine zusätzlichen Dienste. Jede Aufgabe läuft auf dem verwalteten Host und verändert dessen Konfiguration strukturiert und nachvollziehbar. Dazu bereitet die Software Python-Code vor, verbindet sich mit dem Zielsystem per SSH und führt den Code dort aus. Damit eignet sich Ansible sowohl für bestehende Setups als auch für neue Installationen. Selbst zuvor manuell konfigurierte Proxmox-Hosts lassen sich mit Ansible auf einen gemeinsamen Standard heben.
 
 Wer eine neue Proxmox-Infrastruktur mit Ansible einrichtet, kann im Web auf zahlreiche von der Community entwickelte Ansible-Rollen zugreifen, die alle nötigen Arbeitsschritte erledigen und ein Debian-System in einen Proxmox-Host verwandeln.
 
@@ -45,10 +45,10 @@ Im Netzwerk ist es wichtig, dass Proxmox-Systeme eine eigene statische IP-Adress
 
 ### SSH-Schlüssel einrichten
 
-Kein Paar aus öffentlichem und privatem SSH-Schlüssel vorliegend, erzeugt ein Admin dieses auf dem Arbeitsrechner mittels ssh-keygen. Im Anschluss liegt der private Schlüssel in `~/.ssh/id_ed25519` und sein öffentlicher Teil in `~/.ssh/id_ed25519.pub`. Den öffentlichen Schlüssel kopiert man auf das Debian-System im persönlichen Nutzerverzeichnis in die Datei `~/.ssh/authorized_keys`, etwa per ssh-copy-id. Greift man als root zu, landet die Datei authorized_keys im Verzeichnis `/root/.ssh/`. Setzt man stattdessen sudo für einen normalen Systembenutzer ein, versieht ein Admin die Datei `/etc/sudoers.d/Benutzer` mit dem Inhalt:
+Kein Paar aus öffentlichem und privatem SSH-Schlüssel vorliegend, erzeugt ein Admin dieses auf dem Arbeitsrechner mittels ssh-keygen. Im Anschluss liegt der private Schlüssel in `~/.ssh/id_ed25519` und sein öffentlicher Teil in `~/.ssh/id_ed25519.pub`. Den öffentlichen Schlüssel kopiert man auf das Debian-System im persönlichen Nutzerverzeichnis in die Datei `~/.ssh/authorized_keys`, etwa per ssh-copy-id. Greift man als root zu, landet die Datei authorized_keys im Verzeichnis `/root/.ssh/`. Setzt man stattdessen sudo für einen normalen Systembenutzer ein, versieht ein Admin die Datei `/etc/sudoers.d/<username>` mit dem Inhalt:
 
 ```
-Benutzer ALL=(ALL) NOPASSWD:ALL
+<username> ALL=(ALL) NOPASSWD:ALL
 ```
 
 Das erspart beim sudo-Aufruf eine Passwortabfrage. In beiden Fällen verifiziert der Admin, dass die Konfiguration korrekt ist, indem er sich als root oder jeweiliger Benutzer vom System aus per SSH einloggt, auf dem der private SSH-Schlüssel liegt. Im Falle des sudo-Ansatzes gibt das Kommando `sudo id` bei richtig hinterlegter Konfiguration `id=0` aus und zeigt von den Rechten des Systemadministrators root. Das Debian-System erfüllt nach diesen Schritten alle Anforderungen für die automatisierte Installation von Proxmox VE.
@@ -63,7 +63,7 @@ sudo add-apt-repository ppa:ansible/ansible
 
 ergänzt die Paketquellen der Installation. Danach aktualisiert man die Paketdatenbank mit `sudo apt update` und installiert Ansible per `sudo apt install ansible`. Das erzeugt eine Ansible-Laufzeitumgebung mit allen benötigten Modulen, Abhängigkeiten und Verwaltungswerkzeugen, darunter ansible-playbook und ansible-inventory.
 
-Der Zugriff des Arbeitsrechners auf das Debian-Ansible-System erfolgt ausschließlich per SSH-Schlüssel. Stellen Sie sicher, dass auf dem Zielsystem ein Benutzer mit SSH-Schlüssel-basierter Anmeldung und den benötigten sudo-Rechten vorhanden ist (siehe oben beschriebene SSH- und sudo-Konfiguration).
+Der Zugriff des Arbeitsrechners auf das Debian-Ansible-System erfolgt ausschließlich per SSH-Schlüssel. Dabei ist sicherzustellen, dass auf dem Zielsystem ein Benutzer mit SSH-Schlüssel-basierter Anmeldung und den benötigten sudo-Rechten vorhanden ist (siehe oben beschriebene SSH- und sudo-Konfiguration).
 
 ## Arbeitsumgebung vorbereiten
 
@@ -122,7 +122,7 @@ im Ansible-Arbeitsordner, was den Inhalt der Dateien der Rolle enthält. Zusätz
 sudo apt install python3-jmespath
 ```
 
-Die Rolle lae.proxmox steuert den Ablauf der Installation über Variablen. Ein Administrator trägt deren Werte bei Bedarf in der Datei `group_vars/pve_hosts.yml` ein. Im GitHub-Repository der Rolle findet sich eine Liste aller unterstützten Parameter (siehe ix.de/z36x). Dazu gehören Werte wie der Zielkernel, die aktivierten Repositorys oder der Umgang mit alten Kernelpaketen. Zum Beispiel legt der Parameter `pve_no_subscription_repo: true` fest, dass das Non-Subscription-Repository von Proxmox zu nutzen ist.
+Die Rolle lae.proxmox steuert den Ablauf der Installation über Variablen. Ein Administrator trägt deren Werte bei Bedarf in der Datei `group_vars/pve_hosts.yml` ein. Im GitHub-Repository der Rolle findet sich eine Liste aller unterstützten Parameter (siehe https://github.com/lae/ansible-role-proxmox). Dazu gehören Werte wie der Zielkernel, die aktivierten Repositorys oder der Umgang mit alten Kernelpaketen. Zum Beispiel legt der Parameter `pve_no_subscription_repo: true` fest, dass das Non-Subscription-Repository von Proxmox zu nutzen ist.
 
 Die Datei pve_hosts.yml kann zudem den Hostnamen, die Netzwerkparameter und die Einstellungen für die Proxmox-Enterprise-Repositorys enthalten, falls ein Unternehmen über eine gültige Proxmox-Subskription verfügt.
 
@@ -264,7 +264,7 @@ Ansible verbindet sich daraufhin mit dem Zielhost unter Verwendung des hinterleg
 
 Nach Abschluss des Playbooks startet man den Host neu, um den Proxmox-Kernel zu aktivieren. Der Neustart erfolgt nicht im Playbook, sondern bewusst außerhalb der Automation. Sobald das System wieder online ist, steht die Proxmox-Weboberfläche über die IP-Adresse der Maschine auf Port 8006 bereit und zeigt die standardisierte Login-Seite. Die korrekte Kernelversion prüft man idealerweise noch über `uname -r` auf der Shell und verifiziert damit, dass die Installation vollständig und korrekt verlaufen ist.
 
-Die Rolle ermöglicht vollständig reproduzierbare Installationen. Jeder Host in der Inventory-Gruppe pve_hosts erfährt exakt dieselbe Behandlung. Um weitere Systeme mit Proxmox aufzusetzen, genügt es, sie in die Gruppe pve_hosts in hosts aufzunehmen. Das Playbook übernimmt anschließend alle weiteren Schritte automatisch. Dadurch entstehen Proxmox-Set-ups mit identischer Ausgangsbasis, die über die API-Rolle verwaltbar sind (siehe Abbildung 2).
+Die Rolle ermöglicht vollständig reproduzierbare Installationen. Jeder Host in der Inventory-Gruppe pve_hosts erfährt exakt dieselbe Behandlung. Um weitere Systeme mit Proxmox aufzusetzen, genügt es, sie in die Gruppe pve_hosts in hosts aufzunehmen. Das Playbook übernimmt anschließend alle weiteren Schritte automatisch. Dadurch entstehen Proxmox-Setups mit identischer Ausgangsbasis, die über die API-Rolle verwaltbar sind (siehe Abbildung 2).
 
 ## Weiterführende Themen
 
