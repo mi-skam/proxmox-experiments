@@ -330,7 +330,7 @@ resource "proxmox_vm_qemu" "group" {
   for_each    = local.server_group
   name        = each.key
   target_node = "proxmox"
-  clone       = "ubuntu-ci-template"
+  clone       = "ubuntu-2404-ci"
   full_clone  = true
   cores       = 2
   memory      = 4096
