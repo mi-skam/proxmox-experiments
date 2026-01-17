@@ -1212,14 +1212,16 @@ cd environments/dev
 terraform init
 terraform apply
 
-# 2. Wait for VMs to be ready (cloud-init complete)
-sleep 60
-
-# 3. Run Ansible for complex configuration
+# 2. Change to Ansible directory
 cd ../../ansible
+
+# 3. Wait for VMs to be ready (cloud-init complete on all hosts)
+ansible all -m ansible.builtin.wait_for -a "path=/var/lib/cloud/instance/boot-finished state=present timeout=600"
+
+# 4. Run Ansible for complex configuration
 ansible-playbook playbooks/k8s-install.yml
 
-# 4. Verify cluster
+# 5. Verify cluster
 ansible k8s_control_plane -m shell -a "kubectl get nodes"
 ```
 
