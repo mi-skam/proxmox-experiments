@@ -146,7 +146,7 @@ terraform {
 provider "proxmox" {
   endpoint  = "https://10.0.1.241:8006/api2/json"
   insecure  = true
-  api_token = "terraform-prov@pam!automation=db14a893-9213-4fbc-8994-62451b3aea74"
+  api_token = "terraform-prov@pve!automation=db14a893-9213-4fbc-8994-62451b3aea74"
 }
 ```
 
