@@ -98,9 +98,11 @@ cd tf-proxmox
 
 ## Terraform Provider Configuration
 
+> **Security Note**: Never commit API tokens or secrets to version control. Always use variables, environment variables, or separate configuration files that are excluded via `.gitignore`. Add `terraform.tfvars` and `*.tfvars` to your `.gitignore` file to prevent accidental credential exposure.
+
 ### provider.tf (Using Telmate Provider)
 
-Create the file `provider.tf` in the Terraform directory. It controls the connection between Terraform and the Proxmox host and contains the complete provider configuration including API URL and both token values.
+Create the file `provider.tf` in the Terraform directory. It controls the connection between Terraform and the Proxmox host and contains the complete provider configuration including API URL and token references.
 
 #### Option 1: Hardcoded Values
 
@@ -114,9 +116,9 @@ terraform {
 }
 
 provider "proxmox" {
-  pm_api_url          = "https://10.0.1.241:8006/api2/json"
-  pm_api_token_id     = "terraform-prov@pve!automation"
-  pm_api_token_secret = "79f1a87e-3d4f-4feb-9350-e7758fabd173"
+  pm_api_url          = var.proxmox_api_url
+  pm_api_token_id     = var.proxmox_token_id
+  pm_api_token_secret = var.proxmox_token_secret
   pm_tls_insecure     = true
 }
 ```
@@ -180,7 +182,9 @@ pm_api_token_secret = "79f1a87e-3d4f-4feb-9350-e7758fabd173"
 
 ### Alternative Provider: bpg/proxmox
 
-The most practical solution is to switch to the actively maintained alternative provider (bpg/proxmox). It uses the same API path but processes privilege separation correctly and allows functioning automation on Proxmox systems without adjustment. Users simply adapt the provider block and use the familiar Terraform workflows.
+The most practical solution is to switch to the actively maintained alternative provider (bpg/proxmox). It uses the same API path but processes privilege separation correctly and allows functioning automation on Proxmox systems without adjustment.
+
+**Using variables (recommended):**
 
 ```hcl
 terraform {
@@ -192,10 +196,26 @@ terraform {
 }
 
 provider "proxmox" {
-  endpoint  = "https://10.0.1.241:8006/api2/json"
+  endpoint  = var.proxmox_api_url
   insecure  = true
-  api_token = "terraform-prov@pve!automation=db14a893-9213-4fbc-8994-62451b3aea74"
+  api_token = var.proxmox_api_token
 }
+```
+
+With corresponding variable definition in `variables.tf`:
+
+```hcl
+variable "proxmox_api_token" {
+  description = "Proxmox API Token in format 'user@realm!tokenid=secret'"
+  type        = string
+  sensitive   = true
+}
+```
+
+And value in `terraform.tfvars` (remember to add to `.gitignore`):
+
+```hcl
+proxmox_api_token = "your-username@pve!your-token-name=your-actual-token-secret-here"
 ```
 
 ### Initialize Terraform
