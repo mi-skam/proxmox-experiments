@@ -978,6 +978,191 @@ locals {
 
 ---
 
+## Unified Secrets Management with SOPS
+
+Modern infrastructure repositories benefit from encrypted secrets that can be safely committed to version control. Mozilla SOPS (Secrets OPerationS) with age encryption provides a unified approach for both Terraform and Ansible workflows.
+
+### Why SOPS Over Traditional Approaches
+
+| Feature | Traditional (.tfvars + ansible-vault) | SOPS |
+|---------|--------------------------------------|------|
+| **Encryption at rest** | ❌ `.tfvars` plaintext, vault encrypted | ✅ All secrets encrypted |
+| **Version control** | ❌ `.tfvars` gitignored | ✅ Encrypted files committed |
+| **Unified workflow** | ❌ Separate systems for Terraform/Ansible | ✅ Single tool for both |
+| **Partial encryption** | ❌ Encrypt entire file | ✅ Selective field encryption |
+| **Git-friendly diffs** | ❌ Vault files are binary | ✅ Metadata shows changes |
+| **Audit trail** | ❌ No history for gitignored files | ✅ Git log tracks all changes |
+| **Offline work** | ✅ Works offline | ✅ Works offline (with age keys) |
+
+### Quick Setup
+
+```bash
+# 1. Install SOPS and age
+brew install sops age  # macOS
+# or
+sudo apt install age && wget <sops.deb>  # Ubuntu
+
+# 2. Generate age encryption key
+age-keygen -o keys/dev.age.key
+# Output shows: Public key: age1abc123...
+
+# 3. Configure SOPS (update .sops.yaml with your public key)
+cp .sops.yaml.example .sops.yaml
+vim .sops.yaml  # Replace placeholder with your age public key
+
+# 4. Set up age key for SOPS
+mkdir -p ~/.config/sops/age
+cp keys/dev.age.key ~/.config/sops/age/keys.txt
+chmod 600 ~/.config/sops/age/keys.txt
+
+# 5. Create and edit secrets
+sops secrets/common.sops.yaml
+```
+
+### Repository Structure with SOPS
+
+```
+proxmox-infrastructure/
+├── .sops.yaml                      # Encryption rules
+├── secrets/                        # ✅ Commit encrypted files
+│   ├── common.sops.yaml           # Shared secrets (API tokens)
+│   ├── dev.sops.yaml              # Dev environment
+│   ├── staging.sops.yaml          # Staging environment
+│   └── prod.sops.yaml             # Production (separate key!)
+├── keys/                           # ❌ Never commit
+│   ├── .gitignore                 # Ignore *.age.key
+│   └── dev.age.key                # Private key (gitignored)
+└── scripts/
+    ├── sops-edit.sh               # Helper to edit secrets
+    └── rotate-keys.sh             # Key rotation automation
+```
+
+### Example: Encrypted Secrets File
+
+```yaml
+# secrets/common.sops.yaml (committed to git)
+proxmox:
+  api_url: https://10.0.1.241:8006          # Not encrypted (visible)
+  api_user: terraform-prov@pve               # Not encrypted
+  api_token_id: automation                   # Not encrypted
+  api_token_secret: ENC[AES256_GCM,data:...] # ✅ Encrypted!
+
+vm_defaults:
+  user: admin
+  password: ENC[AES256_GCM,data:...]         # ✅ Encrypted!
+
+sops:
+  age:
+    - recipient: age1qyqszqg...
+  lastmodified: "2026-01-17T18:00:00Z"
+```
+
+### Terraform Integration
+
+```hcl
+# providers.tf
+terraform {
+  required_providers {
+    sops = {
+      source  = "carlpett/sops"
+      version = "~> 1.0"
+    }
+  }
+}
+
+# secrets.tf
+data "sops_file" "common_secrets" {
+  source_file = "${path.module}/../../secrets/common.sops.yaml"
+}
+
+locals {
+  proxmox_token = data.sops_file.common_secrets.data["proxmox.api_token_secret"]
+}
+```
+
+### Ansible Integration
+
+```yaml
+# requirements.yml
+collections:
+  - name: community.sops
+    version: ">=1.6.0"
+
+# group_vars/all.yml
+proxmox_token_secret: "{{ lookup('community.sops.sops', '../secrets/common.sops.yaml', 'proxmox.api_token_secret') }}"
+```
+
+### Daily Workflow
+
+```bash
+# Edit secrets (helper script with validation)
+./scripts/sops-edit.sh common
+
+# View decrypted secrets
+sops -d secrets/common.sops.yaml
+
+# Commit encrypted files (safe!)
+git add secrets/common.sops.yaml
+git commit -m "Update Proxmox API token"
+
+# Terraform/Ansible automatically decrypt
+terraform plan
+ansible-playbook playbooks/setup.yml
+```
+
+### Key Management
+
+**Per-environment keys (recommended):**
+```bash
+# Use different keys for dev/staging/prod
+age-keygen -o keys/dev.age.key
+age-keygen -o keys/prod.age.key  # Restricted to ops team only
+```
+
+**Key rotation (every 90 days):**
+```bash
+./scripts/rotate-keys.sh dev
+```
+
+**Team access (multi-key encryption):**
+```yaml
+# .sops.yaml - multiple recipients
+- path_regex: secrets/common\.sops\.yaml$
+  age: >-
+    age1your_key,
+    age1team_member_key,
+    age1another_member_key
+```
+
+### Security Best Practices
+
+✅ **DO:**
+- Commit encrypted `.sops.yaml` files
+- Use separate keys for dev/staging/prod
+- Rotate keys every 90 days
+- Store production keys separately from dev keys
+- Back up keys in encrypted password manager
+
+❌ **DON'T:**
+- Commit `.age.key` files (private keys)
+- Use the same key for all environments
+- Share production keys with all developers
+- Store keys in unencrypted files
+
+### Migration from .tfvars
+
+If you're currently using `.tfvars` files:
+
+1. Create SOPS secrets files with same values
+2. Update Terraform to use `sops_file` data source
+3. Test with `terraform plan`
+4. Remove old `.tfvars` files
+5. Update `.gitignore` to allow `.sops.yaml` files
+
+**See the comprehensive guide:** [SOPS Secrets Management](sops-secrets-management.md)
+
+---
+
 ## Next Steps After VM Provisioning
 
 Once your VMs are running, you have several options for container orchestration:

@@ -1,0 +1,201 @@
+# Proxmox Infrastructure Repository .gitignore
+
+# ====================
+# SOPS / Secrets Management
+# ====================
+
+# SOPS age keys - NEVER commit private keys!
+keys/
+!keys/README.md
+!keys/.age-key.example
+*.age.key
+*.agekey
+.age-key
+
+# SOPS decrypted files (allow .sops.yaml to be committed)
+secrets/*.yaml
+!secrets/*.sops.yaml
+!secrets/README.md
+!secrets/.gitattributes
+
+# ====================
+# Terraform
+# ====================
+
+# State files
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files (old secrets approach - kept for safety)
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Ignore override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform directories
+.terraform/
+.terraform.lock.hcl
+
+# CLI configuration files
+.terraformrc
+terraform.rc
+
+# ====================
+# Ansible
+# ====================
+
+# Ansible vault files (if still using old approach)
+*.vault
+*.vault.yml
+
+# Retry files
+*.retry
+
+# Ansible log files
+ansible.log
+
+# Inventory files with secrets
+inventory/hosts
+!inventory/hosts.example
+
+# ====================
+# Cloud-init Generated Files
+# ====================
+
+# Generated per-instance cloud-init files
+cloud-init/instances/*.yaml
+!cloud-init/instances/.gitkeep
+!cloud-init/instances/*.example.yaml
+
+# ====================
+# Environment / Secrets
+# ====================
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Secret files
+secrets/
+!secrets/*.sops.yaml
+!secrets/README.md
+
+# ====================
+# IDE / Editor
+# ====================
+
+# JetBrains IDEs (IntelliJ, PyCharm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea_modules/
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.*.sw[a-z]
+
+# Emacs
+*~
+\#*\#
+.#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ====================
+# Operating System
+# ====================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ====================
+# Documentation / Build
+# ====================
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.backup
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# ====================
+# Project Specific
+# ====================
+
+# Downloaded cloud images
+*.img
+*.qcow2
+*.iso
+
+# Proxmox backups
+backups/
+*.vma
+*.vma.gz
+*.vma.lzo
+*.vma.zst
+
+# Test files
+test-*.yaml
+test-*.yml
+scratch/
+temp/
+
+# ====================
+# Git / Version Control
+# ====================
+
+# Git patches
+*.patch
+*.diff
+
+# ====================
+# Documentation
+# ====================
+
+# Keep documentation files
+!README.md
+!CLAUDE.md
+!LICENSE
+!doc/**/*.md

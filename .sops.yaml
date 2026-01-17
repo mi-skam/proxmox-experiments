@@ -1,0 +1,42 @@
+# SOPS Configuration for Proxmox Infrastructure
+# Defines encryption rules for different secret files
+# See: https://github.com/mozilla/sops
+
+creation_rules:
+  # Common secrets - shared across all environments
+  # Used for: Proxmox API credentials, SSH keys, VM defaults
+  - path_regex: secrets/common\.sops\.yaml$
+    age: >-
+      age1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszhdeqd
+    encrypted_regex: '^(proxmox_api_token|api_token_secret|password|private_key|token|secret)$'
+
+  # Development environment secrets
+  # Used for: Dev-specific network config, k3s tokens
+  - path_regex: secrets/dev\.sops\.yaml$
+    age: >-
+      age1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszhdeqd
+    encrypted_regex: '^(proxmox_api_token|api_token_secret|password|private_key|token|secret)$'
+
+  # Staging environment secrets
+  # Used for: Staging-specific configuration
+  - path_regex: secrets/staging\.sops\.yaml$
+    age: >-
+      age1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszhdeqd
+    encrypted_regex: '^(proxmox_api_token|api_token_secret|password|private_key|token|secret)$'
+
+  # Production environment secrets (most restrictive)
+  # IMPORTANT: Use separate age key for production!
+  - path_regex: secrets/prod\.sops\.yaml$
+    age: >-
+      age1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszhdeqd
+    encrypted_regex: '^(proxmox_api_token|api_token_secret|password|private_key|token|secret)$'
+
+# IMPORTANT: Replace the placeholder age public keys above with your actual keys
+# Generate keys with: age-keygen -o keys/dev.age.key
+# The public key will be shown in the output
+#
+# Best practices:
+# - Use different age keys for dev/staging/prod environments
+# - Store private keys securely (~/.config/sops/age/keys.txt)
+# - Never commit private keys (.age.key files) to git
+# - Rotate keys every 90 days
