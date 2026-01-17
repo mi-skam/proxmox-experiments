@@ -244,7 +244,7 @@ Instead of defining an SSH key, you can specify username and password in the `vm
 initialization {
   user_account {
     username = "ubuntu"
-    password = "xyz"
+    password = "YourSecurePasswordHere"
   }
 }
 ```
