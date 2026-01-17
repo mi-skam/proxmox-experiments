@@ -102,6 +102,8 @@ cd tf-proxmox
 
 Create the file `provider.tf` in the Terraform directory. It controls the connection between Terraform and the Proxmox host and contains the complete provider configuration including API URL and both token values.
 
+#### Option 1: Hardcoded Values
+
 ```hcl
 terraform {
   required_providers {
@@ -119,16 +121,62 @@ provider "proxmox" {
 }
 ```
 
-### Alternative: Using Variables File (terraform.tfvars)
+#### Option 2: Using Variables (Recommended)
 
-To know which token values should be used, additionally create the file `terraform.tfvars` and enter the Token-ID and Token-Secret there:
+For better security and flexibility, use variables instead of hardcoding credentials:
 
+**provider.tf:**
 ```hcl
-proxmox_token_id     = "terraform-prov@pve!automation"
-proxmox_token_secret = "79f1a87e-3d4f-4feb-9350-e7758fabd173"
+terraform {
+  required_providers {
+    proxmox = {
+      source = "Telmate/proxmox"
+    }
+  }
+}
+
+provider "proxmox" {
+  pm_api_url          = var.pm_api_url
+  pm_api_token_id     = var.pm_api_token_id
+  pm_api_token_secret = var.pm_api_token_secret
+  pm_tls_insecure     = var.pm_tls_insecure
+}
 ```
 
-When token values are in the `provider.tf` file, Terraform doesn't need a `terraform.tfvars` file.
+**variables.tf:**
+```hcl
+variable "pm_api_url" {
+  description = "Proxmox API URL"
+  type        = string
+}
+
+variable "pm_api_token_id" {
+  description = "Proxmox API Token ID"
+  type        = string
+  sensitive   = true
+}
+
+variable "pm_api_token_secret" {
+  description = "Proxmox API Token Secret"
+  type        = string
+  sensitive   = true
+}
+
+variable "pm_tls_insecure" {
+  description = "Disable TLS verification"
+  type        = bool
+  default     = true
+}
+```
+
+**terraform.tfvars:**
+```hcl
+pm_api_url          = "https://10.0.1.241:8006/api2/json"
+pm_api_token_id     = "terraform-prov@pve!automation"
+pm_api_token_secret = "79f1a87e-3d4f-4feb-9350-e7758fabd173"
+```
+
+**Note:** The `terraform.tfvars` file should be added to `.gitignore` to prevent committing sensitive credentials to version control.
 
 ### Alternative Provider: bpg/proxmox
 
