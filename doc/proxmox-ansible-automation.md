@@ -45,10 +45,10 @@ Im Netzwerk ist es wichtig, dass Proxmox-Systeme eine eigene statische IP-Adress
 
 ### SSH-Schlüssel einrichten
 
-Kein Paar aus öffentlichem und privatem SSH-Schlüssel vorliegend, erzeugt ein Admin dieses auf dem Arbeitsrechner mittels ssh-keygen. Im Anschluss liegt der private Schlüssel in `~/.ssh/id_ed25519` und sein öffentlicher Teil in `~/.ssh/id_ed25519.pub`. Den öffentlichen Schlüssel kopiert man auf das Debian-System im persönlichen Nutzerverzeichnis in die Datei `~/.ssh/authorized_keys`, etwa per ssh-copy-id. Greift man als root zu, landet die Datei authorized_keys im Verzeichnis `/root/.ssh/`. Setzt man stattdessen sudo für einen normalen Systembenutzer ein, versieht ein Admin die Datei `/etc/sudoers.d/Benutzer` mit dem Inhalt:
+Kein Paar aus öffentlichem und privatem SSH-Schlüssel vorliegend, erzeugt ein Admin dieses auf dem Arbeitsrechner mittels ssh-keygen. Im Anschluss liegt der private Schlüssel in `~/.ssh/id_ed25519` und sein öffentlicher Teil in `~/.ssh/id_ed25519.pub`. Den öffentlichen Schlüssel kopiert man auf das Debian-System im persönlichen Nutzerverzeichnis in die Datei `~/.ssh/authorized_keys`, etwa per ssh-copy-id. Greift man als root zu, landet die Datei authorized_keys im Verzeichnis `/root/.ssh/`. Setzt man stattdessen sudo für einen normalen Systembenutzer ein, versieht ein Admin die Datei `/etc/sudoers.d/<username>` mit dem Inhalt:
 
 ```
-Benutzer ALL=(ALL) NOPASSWD:ALL
+<username> ALL=(ALL) NOPASSWD:ALL
 ```
 
 Das erspart beim sudo-Aufruf eine Passwortabfrage. In beiden Fällen verifiziert der Admin, dass die Konfiguration korrekt ist, indem er sich als root oder jeweiliger Benutzer vom System aus per SSH einloggt, auf dem der private SSH-Schlüssel liegt. Im Falle des sudo-Ansatzes gibt das Kommando `sudo id` bei richtig hinterlegter Konfiguration `id=0` aus und zeigt von den Rechten des Systemadministrators root. Das Debian-System erfüllt nach diesen Schritten alle Anforderungen für die automatisierte Installation von Proxmox VE.
