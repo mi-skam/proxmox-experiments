@@ -234,7 +234,60 @@ Terraform requires a template. Provisioning begins by importing a suitable Cloud
 
 A template contains the operating system, Cloud-init packages, and basic configuration like drive types, serial consoles, and boot order. Terraform combines this template with VM-specific parameters. This keeps reusable base images separate from dynamic deployments.
 
-Integration with Virt-Customize also plays a role. This tool modifies Cloud images directly on the host. Packages, services, files on startup commands can be integrated into the template without the VM itself needing to start. Templates become more homogeneous, and Terraform needs to process fewer variables.
+Integration with Virt-Customize also plays a role. This tool modifies Cloud images directly on the host. Packages, services, files, and startup commands can be integrated into the template without the VM itself needing to start. Templates become more homogeneous, and Terraform needs to process fewer variables.
+
+#### Using Virt-Customize to Modify Cloud Images
+
+Virt-Customize, part of the libguestfs-tools package, allows you to customize cloud images before converting them to templates. First, ensure the package is installed on your Proxmox host:
+
+```bash
+apt install libguestfs-tools
+```
+
+Here are practical examples of common customizations:
+
+##### Listing 4a: Install Packages and Configure Services
+
+```bash
+# Install packages into the cloud image
+virt-customize -a noble-server-cloudimg-amd64.img \
+  --install qemu-guest-agent,vim,htop,curl
+
+# Enable services to start on boot
+virt-customize -a noble-server-cloudimg-amd64.img \
+  --run-command "systemctl enable qemu-guest-agent"
+```
+
+##### Listing 4b: Add Files and Configure System Settings
+
+```bash
+# Create a custom configuration file
+virt-customize -a noble-server-cloudimg-amd64.img \
+  --write /etc/custom-config.conf:"key=value\nother_key=other_value"
+
+# Copy a file from the host into the image
+virt-customize -a noble-server-cloudimg-amd64.img \
+  --copy-in /path/to/local/file:/etc/
+
+# Run custom commands
+virt-customize -a noble-server-cloudimg-amd64.img \
+  --run-command "echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf"
+```
+
+##### Listing 4c: Comprehensive Example with Multiple Customizations
+
+```bash
+# Combine multiple operations in a single command
+virt-customize -a noble-server-cloudimg-amd64.img \
+  --install qemu-guest-agent,ansible,git \
+  --run-command "systemctl enable qemu-guest-agent" \
+  --mkdir /opt/scripts \
+  --write /opt/scripts/startup.sh:"#!/bin/bash\necho 'System initialized'" \
+  --chmod 0755:/opt/scripts/startup.sh \
+  --timezone Europe/Berlin
+```
+
+After customizing the image with Virt-Customize, proceed with importing it to Proxmox and converting to a template. This approach reduces the configuration burden on Cloud-init and Terraform, as the base image already contains necessary packages and configurations.
 
 ### Preparing a Cloud-Init Image
 
@@ -242,7 +295,7 @@ Cloud images can be downloaded in the shell. Ubuntu 24.04 LTS for example with w
 
 Once downloaded to the current project directory, prepare it on the Proxmox host in several steps for later cloning by Terraform.
 
-#### Listing 4: Prepare VM for Terraform and Cloud-init
+#### Listing 5: Prepare VM for Terraform and Cloud-init
 
 ```bash
 # Create VM with basic settings
@@ -273,7 +326,7 @@ The template is now named `ubuntu-2404-ci` and can be referenced in Terraform vi
 
 The VM configuration for using Terraform is in the file `vm.tf`. A complete, functional configuration can look like this:
 
-### Listing 5: Complete VM Configuration
+### Listing 6: Complete VM Configuration
 
 ```hcl
 resource "proxmox_vm_qemu" "web01" {
