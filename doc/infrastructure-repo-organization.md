@@ -723,7 +723,7 @@ variable "ssh_public_key_path" {
 
 ```hcl
 # Copy this file to terraform.tfvars and fill in your values
-# terraform.tfvars is gitignored and should never be committed
+# terraform.tfvars will be ignored by the .gitignore pattern shown above and should never be committed
 
 proxmox_api_url      = "https://YOUR_PROXMOX_IP:8006"
 proxmox_api_token    = "terraform-prov@pve!automation=YOUR_TOKEN_SECRET"
