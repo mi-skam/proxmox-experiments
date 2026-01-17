@@ -149,8 +149,8 @@ variable "proxmox_token_secret" {
 Create a `terraform.tfvars` file with your actual credentials. **Important**: This file should never be committed to version control.
 
 ```hcl
-proxmox_api_url      = "https://10.0.1.241:8006/api2/json"
-proxmox_token_id     = "terraform-prov@pve!automation"
+proxmox_api_url      = "https://your.proxmox.host:8006/api2/json"
+proxmox_token_id     = "your-username@pve!your-token-name"
 proxmox_token_secret = "your-actual-token-secret-here"
 ```
 
@@ -172,8 +172,8 @@ terraform.tfvars
 Instead of a `terraform.tfvars` file, you can also use environment variables:
 
 ```bash
-export TF_VAR_proxmox_api_url="https://10.0.1.241:8006/api2/json"
-export TF_VAR_proxmox_token_id="terraform-prov@pve!automation"
+export TF_VAR_proxmox_api_url="https://your.proxmox.host:8006/api2/json"
+export TF_VAR_proxmox_token_id="your-username@pve!your-token-name"
 export TF_VAR_proxmox_token_secret="your-actual-token-secret-here"
 ```
 
@@ -214,7 +214,7 @@ variable "proxmox_api_token" {
 And value in `terraform.tfvars` (remember to add to `.gitignore`):
 
 ```hcl
-proxmox_api_token = "terraform-prov@pve!automation=your-actual-token-secret-here"
+proxmox_api_token = "your-username@pve!your-token-name=your-actual-token-secret-here"
 ```
 
 ### Initialize Terraform
