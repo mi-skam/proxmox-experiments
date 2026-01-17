@@ -105,7 +105,9 @@ network:
       dhcp4: false
       addresses:
         - 10.0.0.25/24
-      gateway4: 10.0.0.1
+      routes:
+        - to: default
+          via: 10.0.0.1
       nameservers:
         addresses: [10.0.0.10, 8.8.8.8]
 
