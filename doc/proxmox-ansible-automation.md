@@ -150,7 +150,7 @@ Diese Struktur definiert keine weiteren Schritte, da die Rolle selbst sämtliche
 ansible-playbook -i hosts playbook.yaml
 ```
 
-Ansible überträgt dem Zielsystem bei richtig hinterlegter Konfiguration alle Schritte, wird mit der Rolle lae.proxmox alle nötigen Pakete einrichten und am Ende einen vollständig einsatzbereiten Proxmox-Host hinterlassen.
+Ansible überträgt dem Zielsystem bei richtig hinterlegter Konfiguration alle Schritte und wird mit der Rolle lae.proxmox alle nötigen Pakete einrichten und am Ende einen vollständig einsatzbereiten Proxmox-Host hinterlassen.
 
 ## Storage-Konfiguration
 
